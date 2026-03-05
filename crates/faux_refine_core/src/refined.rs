@@ -6,7 +6,7 @@ use crate::proof::{bitset::Proof, validator::Validator};
 /// ## 実装例
 /// ```rust
 /// use std::marker::PhantomData;
-/// use faux_refine::{faux_refine_derive::Proof, purelude::*};
+/// use faux_refine::{faux_refine_derive::Proof, predule::*};
 ///
 /// #[repr(transparent)]
 /// #[derive(Debug, Clone)]
