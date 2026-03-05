@@ -17,10 +17,9 @@ pub struct BitSet {
 }
 
 impl BitSet {
-    /// selfがtargetの部分集合かを判定する
+    /// selfがtargetの部分集合かを判定する。
     /// ### ⚠️ハッシュ衝突による誤判定あり
-    /// 包含関係がないのに`true`を返す可能性あり<br>
-    /// `false`ならば包含関係にないと言える
+    /// 包含関係がないのに`true`を返す可能性あり。
     pub const fn is_subset_of(&self, target: &Self) -> bool {
         let mut i = 0;
         while i < BITS_NUM {

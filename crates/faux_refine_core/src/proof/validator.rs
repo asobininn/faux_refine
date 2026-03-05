@@ -2,7 +2,7 @@ use std::convert::Infallible;
 
 use crate::proof::list::{Cons, Nil};
 
-/// 型 `T` の値が制約を満たすかを実行時に検証するトレイト  
+/// 型 `T` の値が制約を満たすかを実行時に検証するトレイト。
 /// ## 使用例
 /// ```
 /// #[derive(Debug, Clone, Proof)]
@@ -17,7 +17,7 @@ use crate::proof::list::{Cons, Nil};
 /// }
 /// ```
 pub trait Validator<T> {
-    /// 検証失敗時に返すエラー型<br>
+    /// 検証失敗時に返すエラー型。<br>
     /// [`From<Inallible>`] の実装が必要
     type Error: From<Infallible>;
 

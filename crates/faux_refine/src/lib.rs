@@ -1,23 +1,25 @@
-//! Rustで依存型もどきを実現するクレート
+//! Rustで依存型もどきを実現するクレート。
 //! ### ⚠️ 確率的なバグの可能性について
-//! 制約の包含関係の判定は256bitのBloom filterによって行うため、
-//! 低確率ではあるが包含関係がないのに`true`を返す可能性がある<br>
+//! このクレートは2種類の衝突が起きる可能性がある。
+//! 1. FNV-64ハッシュの衝突 (全制約型)
+//! 2. `extra`値の衝突 (constジェネリクスを持つ型)
+//! 
 //! セキュリティ用途や、誤った型変換が致命的になるシステムでの使用は避けてください。
 //! ## 使用例
 //! ```rust
 //! use std::{convert::Infallible, fmt::Display, marker::PhantomData};
 //!
-//! use faux_refine::{faux_refine_derive::Proof, purelude::*};
+//! use faux_refine::{faux_refine_derive::Proof, predule::*};
 //!
 //! // 検証済みの数値を表すNewType
 //! #[repr(transparent)]
 //! #[derive(Debug, Clone)]
-//! struct ValidedNumber<T, P: Proof> {
+//! struct ValidatedNumber<T, P: Proof> {
 //!     value: T,
 //!     _proof: PhantomData<P>,
 //! }
 //!
-//! unsafe impl<T, P: Proof> Refined for ValidedNumber<T, P> {
+//! unsafe impl<T, P: Proof> Refined for ValidatedNumber<T, P> {
 //!     type Inner = T;
 //!     type Proof = P;
 //!
@@ -30,7 +32,7 @@
 //!     }
 //! }
 //!
-//! impl<T: Display, P: Proof> Display for ValidedNumber<T, P> {
+//! impl<T: Display, P: Proof> Display for ValidatedNumber<T, P> {
 //!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 //!         write!(f, "{}", self.value)
 //!     }
@@ -75,16 +77,16 @@
 //! }
 //!
 //! // 使用例
-//! fn odd_only<T: Display>(n: &ValidedNumber<T, proofs!(IsOdd)>) {
-//!     println!("{} is odd number.", n);
+//! fn odd_only<T: Display>(n: &ValidatedNumber<T, proofs!(IsOdd)>) {
+//!     println!("{} is an odd number.", n);
 //! }
 //!
-//! fn odd_and_greater3_only<T: Display>(n: &ValidedNumber<T, proofs!(IsOdd, Greater<3>)>) {
-//!     println!("{} is odd and greater than 3.", n)
+//! fn odd_and_greater3_only<T: Display>(n: &ValidatedNumber<T, proofs!(IsOdd, Greater<3>)>) {
+//!     println!("{} is an odd number and greater than 3.", n)
 //! }
 //!
 //! fn main() -> Result<(), MyError> {
-//!     let n = ValidedNumber::try_new(11)?;
+//!     let n = ValidatedNumber::try_new(11)?;
 //!     odd_only(n.weaken_ref().ok_or(MyError::NotASubset)?);
 //!     odd_and_greater3_only(&n);
 //!     Ok(())

@@ -2,19 +2,19 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{DeriveInput, parse_macro_input};
 
-/// 制約型に[`Proof`]を自動実装するderiveマクロ
-/// 
+/// 制約型に[`Proof`]を自動実装するderiveマクロ。
+///
 /// 型の名前とconstジェネリクスパラメータから`BitSet`を定数計算で生成し、
-/// `Proof::PROOF_BIT`として実装する
-/// 
-/// # ビットセットの生成方法
-/// ## constジェネリクスを持たない型
-/// 型名の文字列を4つの異なるシード値でFNV-64ハッシュし、その結果を`bits`に並べる
-/// ## constジェネリクスを持つ型
-/// 複数のconstパラメータをリトルエンディアン的に合算した`extra`を計算し、型名と`extra`を混ぜてハッシュする<br>
-/// よって、`<N1, N2>` と`<N2, N1>`は別のビットセットとなる
-/// #### ⚠️ 誤判定の可能性
-/// パラメータ値を`extra: u64`という単一の変数に畳み込むため、衝突が起きる可能性がある
+/// `Proof::PROOF_BIT`として実装する。
+///
+/// ## ビットセットの生成方法
+/// ### constジェネリクスを持たない型
+/// 型名の文字列を4つの異なるシード値でFNV-64ハッシュし、その結果を`bits`に並べる。
+/// ### constジェネリクスを持つ型
+/// 複数のconstパラメータをリトルエンディアン的に合算した`extra`を計算し、型名と`extra`を混ぜてハッシュする。<br>
+/// よって、`<N1, N2>` と`<N2, N1>`は別のビットセットとなる。
+/// ## ⚠️ 誤判定の可能性
+/// パラメータ値を`extra: u64`という単一の変数に畳み込むため、衝突が起きる可能性がある。
 #[proc_macro_derive(Proof)]
 pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

@@ -1,6 +1,6 @@
 use crate::proof::{bitset::Proof, validator::Validator};
 
-/// 「ある制約を満たすことが保証された値」を表すトレイト
+/// 「ある制約を満たすことが保証された値」を表すトレイト。
 /// ## 実装者が守るべき制約
 /// 1. 構造が`#[repr(transparent)]`可能であること
 /// ## 実装例
