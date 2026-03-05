@@ -1,16 +1,16 @@
 use std::{convert::Infallible, fmt::Display, marker::PhantomData};
 
-use faux_refine::{faux_refine_derive::Proof, purelude::*};
+use faux_refine::{faux_refine_derive::Proof, predule::*};
 
 // 検証済みの数値を表すNewType
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-struct ValidedNumber<T, P: Proof> {
+struct ValidatedNumber<T, P: Proof> {
     value: T,
     _proof: PhantomData<P>,
 }
 
-unsafe impl<T, P: Proof> Refined for ValidedNumber<T, P> {
+unsafe impl<T, P: Proof> Refined for ValidatedNumber<T, P> {
     type Inner = T;
     type Proof = P;
 
@@ -23,7 +23,7 @@ unsafe impl<T, P: Proof> Refined for ValidedNumber<T, P> {
     }
 }
 
-impl<T: Display, P: Proof> Display for ValidedNumber<T, P> {
+impl<T: Display, P: Proof> Display for ValidatedNumber<T, P> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }
@@ -68,16 +68,16 @@ impl<const N: i32, T: num::Integer + num::ToPrimitive> Validator<T> for Greater<
 }
 
 // 使用例
-fn odd_only<T: Display>(n: &ValidedNumber<T, proofs!(IsOdd)>) {
+fn odd_only<T: Display>(n: &ValidatedNumber<T, proofs!(IsOdd)>) {
     println!("{} is odd number.", n);
 }
 
-fn odd_and_greater3_only<T: Display>(n: &ValidedNumber<T, proofs!(IsOdd, Greater<3>)>) {
+fn odd_and_greater3_only<T: Display>(n: &ValidatedNumber<T, proofs!(IsOdd, Greater<3>)>) {
     println!("{} is odd and greater than 3.", n)
 }
 
 fn main() -> Result<(), MyError> {
-    let n = ValidedNumber::try_new(11)?;
+    let n = ValidatedNumber::try_new(11)?;
     odd_only(n.weaken_ref().ok_or(MyError::NotASubset)?);
     odd_and_greater3_only(&n);
     Ok(())

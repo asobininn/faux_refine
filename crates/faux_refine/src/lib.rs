@@ -95,7 +95,7 @@ pub use faux_refine_core;
 #[cfg(feature = "derives")]
 pub use faux_refine_derive;
 
-pub mod purelude {
+pub mod predule {
     pub use faux_refine_core::{
         proof::{bitset::*, list::*, validator::Validator},
         proofs,
