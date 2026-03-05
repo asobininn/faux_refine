@@ -1,0 +1,12 @@
+[package]
+name = "faux_refine"
+version = "0.1.0"
+edition = "2024"
+authors = ["asobi"]
+
+[dependencies]
+faux_refine_core = { path = "../faux_refine_core" }
+faux_refine_derive = { path = "../faux_refine_derive", optional = true }
+
+[features]
+derives = ["faux_refine_derive"]

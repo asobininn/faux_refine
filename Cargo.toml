@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "crates/faux_refine",
+    "crates/faux_refine_core",
+    "crates/faux_refine_derive",
+]
+
+resolver = "2"
