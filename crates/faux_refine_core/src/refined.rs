@@ -41,6 +41,14 @@ pub unsafe trait Refined: Sized {
         })
     }
 
+    unsafe fn new_unchecked(value: Self::Inner) -> Self {
+        unsafe {
+            let mut slot = std::mem::MaybeUninit::<Self>::uninit();
+            std::ptr::write(slot.as_mut_ptr() as *mut Self::Inner, value);
+            slot.assume_init()
+        }
+    }
+
     fn weaken_ref<Target>(&self) -> Option<&Target>
     where
         Target: Refined<Inner = Self::Inner>,
