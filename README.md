@@ -130,6 +130,14 @@ let n2: ValidatedNumber<i32, proofs!(IsOdd)> = n.weaken().unwrap();
 proofs!(NonEmpty, ValidFormat, DomainExists)
 ```
 
+`[proof(extends(..))]`マクロで上位の制約を定義する。
+
+```rust
+#[derive(Proof)]
+#[proof(extends(IsOdd, Greater<1>))]
+struct IsFive;
+```
+
 ### constジェネリクスの順序を区別する
 
 `Foo<const A: i32, const B: i32>`のような型において、`Foo<3, 4>`と`Foo<4, 3>`は別の制約として扱われる。
