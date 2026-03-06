@@ -144,9 +144,10 @@ struct IsFive;
 
 ## できないこと
 
-### 制約の意味論的な演算
+### 制約パラメータの意味論的計算
 
-`MinLength<2>`と`MinLength<3>`を合成しても`MinLength<5>`は自動導出できない。
+`MinLength<2>`と`MinLength<3>`を合成しても`MinLength<5>`は自動導出できない。  
+証明はユーザの責任で行う必要がある。
 
 ```rust
 fn concat(
@@ -154,7 +155,7 @@ fn concat(
     b: ValidatedString<proofs!(MinLength<3>)>,
 ) -> ValidatedString<proofs!(MinLength<5>)> {
     let value = format!("{}{}", a.inner(), b.inner());
-    ValidatedString::try_new(value).unwrap()  // 本来不要なはずだが避けられない
+    ValidatedString::try_new(value).unwrap()  // 型レベルで保証できない
 }
 ```
 
@@ -164,7 +165,7 @@ fn concat(
 
 ### 強い制約へ変換時の最小限のチェック
 
-線形型システムを活用すれば変数に必要なチェックを最小限にできるが、このクレートではWeak → Strongの変換は`try_new`による再検証が必要となる。
+線形型システムを活用すれば変数に必要なチェックを最小限にできるが、このクレートではWeak → Strongの変換は`new_unchecked`による`unsafe`なものか、`try_new`による再検証が必要となる。
 
 ## 将来できること(`generic_const_exprs`の安定化待ち)
 
