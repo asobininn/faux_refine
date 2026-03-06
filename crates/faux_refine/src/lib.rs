@@ -3,7 +3,7 @@
 //! このクレートは2種類の衝突が起きる可能性がある。
 //! 1. FNV-64ハッシュの衝突 (全制約型)
 //! 2. `extra`値の衝突 (constジェネリクスを持つ型)
-//! 
+//!
 //! セキュリティ用途や、誤った型変換が致命的になるシステムでの使用は避けてください。
 //! ## 使用例
 //! ```rust
@@ -14,13 +14,13 @@
 //! // 検証済みの数値を表すNewType
 //! #[repr(transparent)]
 //! #[derive(Debug, Clone)]
-//! struct ValidatedNumber<T, P: Proof> {
-//!     value: T,
+//! struct ValidatedInt<P: Proof> {
+//!     value: i32,
 //!     _proof: PhantomData<P>,
 //! }
 //!
-//! unsafe impl<T, P: Proof> Refined for ValidatedNumber<T, P> {
-//!     type Inner = T;
+//! unsafe impl<P: Proof> Refined for ValidatedInt<P> {
+//!     type Inner = i32;
 //!     type Proof = P;
 //!
 //!     fn inner(&self) -> &Self::Inner {
@@ -32,7 +32,7 @@
 //!     }
 //! }
 //!
-//! impl<T: Display, P: Proof> Display for ValidatedNumber<T, P> {
+//! impl<P: Proof> Display for ValidatedInt<P> {
 //!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 //!         write!(f, "{}", self.value)
 //!     }
@@ -42,6 +42,7 @@
 //! #[derive(Debug)]
 //! enum MyError {
 //!     IsNotOdd,
+//!     IsNotFive,
 //!     Below(i32),
 //!     Convert,
 //!     NotASubset,
@@ -76,19 +77,30 @@
 //!     }
 //! }
 //!
-//! // 使用例
-//! fn odd_only<T: Display>(n: &ValidatedNumber<T, proofs!(IsOdd)>) {
-//!     println!("{} is an odd number.", n);
+//! #[derive(Debug, Clone, Proof)]
+//! #[proof(extends(IsOdd, Greater<1>))]
+//! struct IsFive;
+//! impl Validator<i32> for IsFive {
+//!     type Error = MyError;
+//!
+//!     fn validate(value: &i32) -> Result<(), Self::Error> {
+//!         (value == &5).then_some(()).ok_or(MyError::IsNotFive)
+//!     }
 //! }
 //!
-//! fn odd_and_greater3_only<T: Display>(n: &ValidatedNumber<T, proofs!(IsOdd, Greater<3>)>) {
-//!     println!("{} is an odd number and greater than 3.", n)
+//! // 使用例
+//! fn odd_and_greater1_only(n: &ValidatedInt<proofs!(IsOdd, Greater<1>)>) {
+//!     println!("{} is an odd number and greater than 1.", n);
+//! }
+//!
+//! fn five_only(n: &ValidatedInt<proofs!(IsFive)>) {
+//!     println!("{} is 5!!.", n)
 //! }
 //!
 //! fn main() -> Result<(), MyError> {
-//!     let n = ValidatedNumber::try_new(11)?;
-//!     odd_only(n.weaken_ref().ok_or(MyError::NotASubset)?);
-//!     odd_and_greater3_only(&n);
+//!     let n: ValidatedInt<proofs!(IsFive)> = ValidatedInt::try_new(5)?;
+//!     odd_and_greater1_only(n.weaken_ref().ok_or(MyError::NotASubset)?);
+//!     five_only(&n);
 //!     Ok(())
 //! }
 //! ```
