@@ -1,2 +1,2 @@
-pub mod proof;
+pub mod predicate;
 pub mod refined;

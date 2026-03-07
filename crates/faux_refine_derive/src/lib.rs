@@ -3,13 +3,13 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{DeriveInput, Token, Type, parse::Parse, parse_macro_input, punctuated::Punctuated};
 
-// #[proof(extends(..))]のパース
+// #[Pred(extends(..))]のパース
 
-struct ProofAttr {
+struct PredAttr {
     extends: Vec<Type>,
 }
 
-impl Parse for ProofAttr {
+impl Parse for PredAttr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         // 先読みして"extends"か確認してからパースする
         if !input.peek(syn::Ident) {
@@ -25,28 +25,28 @@ impl Parse for ProofAttr {
         let content;
         syn::parenthesized!(content in input);
         let types = Punctuated::<Type, Token![,]>::parse_terminated(&content)?;
-        Ok(ProofAttr {
+        Ok(PredAttr {
             extends: types.into_iter().collect(),
         })
     }
 }
 
-// #[derive(Proof)]の実装
+// #[derive(Pred)]の実装
 
-/// 制約型に[`Proof`]を自動実装するderiveマクロ。<br>
+/// 制約型に[`Pred`]を自動実装するderiveマクロ。<br>
 /// 型の名前とconstジェネリクスパラメータから`BitSet`を定数計算で生成し、
-/// `Proof::PROOF_BIT`として実装する。
+/// `Pred::PRED_BIT`として実装する。
 /// ## 実装例
 /// ```rust
-/// #[derive(Proof)]
+/// #[derive(Pred)]
 /// struct IsOdd;
 /// 
-/// #[derive(Proof)]
+/// #[derive(Pred)]
 /// #[proofs(extends(IsNat, IsOdd))]
 /// struct IsOne;
 /// ```
 /// ## `extends`による制約の継承
-/// `#[proof(extends(..))]`を付与すると、親制約の`PROOF_BIT`をORで合算する。<br>
+/// `#[Pred(extends(..))]`を付与すると、親制約の`PRED_BIT`をORで合算する。<br>
 /// これにより`weaken`/`weaken_ref`で親制約への変換が成立する。
 /// 
 /// ## ⚠️ 確率的な誤判定の可能性(2種類)
@@ -54,7 +54,7 @@ impl Parse for ProofAttr {
 /// 2. `extra`値の衝突 (constジェネリクスを持つ型)
 /// 
 /// どちらの衝突も`weaken`/`weaken_ref`が誤って成功する方向にのみ働く。 
-#[proc_macro_derive(Proof, attributes(proof))]
+#[proc_macro_derive(Pred, attributes(pred))]
 pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let generics = &input.generics;
@@ -63,25 +63,25 @@ pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
     let name_str = name.to_string();
     let const_params: Vec<_> = input.generics.const_params().collect();
 
-    // #[proof(extends(..))]をパースする
+    // #[pred(extends(..))]をパースする
     let extends: Vec<Type> = {
         let mut result = Vec::new();
-        for attr in input.attrs.iter().filter(|a| a.path().is_ident("proof")) {
-            match attr.parse_args::<ProofAttr>() {
+        for attr in input.attrs.iter().filter(|a| a.path().is_ident("Pred")) {
+            match attr.parse_args::<PredAttr>() {
                 Ok(parsed) => result.extend(parsed.extends),
                 Err(e) => return e.into_compile_error().into(),
             }
         }
         result
     };
-    // extendsがある場合、親制約のPROOF_BITをORで合算するトークンを生成する
+    // extendsがある場合、親制約のPRED_BITをORで合算するトークンを生成する
     // e.g. extends(IsNat, GreaterEq<1>) →
-    //      | <IsNat as Proof>::PROOF_BIT.bits[0] | <GreaterEq<1> as Proof>::PROOF_BIT.bits[0]
+    //      | <IsNat as Pred>::PRED_BIT.bits[0] | <GreaterEq<1> as Pred>::PRED_BIT.bits[0]
     let extends_bits: Vec<TokenStream2> = (0..4)
         .map(|i| {
             let idx = syn::Index::from(i);
             quote! {
-                #( | <#extends as Proof>::PROOF_BIT.bits[#idx] )*
+                #( | <#extends as Pred>::PRED_BIT.bits[#idx] )*
             }
         })
         .collect();
@@ -124,8 +124,8 @@ pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
     };
 
     quote! {
-        impl #impl_generics Proof for #name #ty_generics #where_clause {
-            const PROOF_BIT: BitSet = #bit_expr;
+        impl #impl_generics Pred for #name #ty_generics #where_clause {
+            const PRED_BIT: BitSet = #bit_expr;
         }
     }
     .into()

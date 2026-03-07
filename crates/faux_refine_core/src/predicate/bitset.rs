@@ -1,4 +1,4 @@
-use crate::proof::list::{Cons, Nil};
+use crate::predicate::list::{Cons, Nil};
 
 /// ビットセットの幅(256bit)
 const BITS_NUM: usize = 4;
@@ -32,21 +32,21 @@ impl BitSet {
     }
 }
 
-pub trait Proof {
-    const PROOF_BIT: BitSet;
+pub trait Pred {
+    const PRED_BIT: BitSet;
 }
 
-impl Proof for Nil {
-    const PROOF_BIT: BitSet = BitSet { bits: [0, 0, 0, 0] };
+impl Pred for Nil {
+    const PRED_BIT: BitSet = BitSet { bits: [0, 0, 0, 0] };
 }
 
-impl<V: Proof, Rest: Proof> Proof for Cons<V, Rest> {
-    const PROOF_BIT: BitSet = BitSet {
+impl<V: Pred, Rest: Pred> Pred for Cons<V, Rest> {
+    const PRED_BIT: BitSet = BitSet {
         bits: [
-            V::PROOF_BIT.bits[0] | Rest::PROOF_BIT.bits[0],
-            V::PROOF_BIT.bits[1] | Rest::PROOF_BIT.bits[1],
-            V::PROOF_BIT.bits[2] | Rest::PROOF_BIT.bits[2],
-            V::PROOF_BIT.bits[3] | Rest::PROOF_BIT.bits[3],
+            V::PRED_BIT.bits[0] | Rest::PRED_BIT.bits[0],
+            V::PRED_BIT.bits[1] | Rest::PRED_BIT.bits[1],
+            V::PRED_BIT.bits[2] | Rest::PRED_BIT.bits[2],
+            V::PRED_BIT.bits[3] | Rest::PRED_BIT.bits[3],
         ],
     };
 }

@@ -9,19 +9,19 @@
 //! ```rust
 //! use std::{convert::Infallible, fmt::Display, marker::PhantomData};
 //!
-//! use faux_refine::{faux_refine_derive::Proof, predule::*};
+//! use faux_refine::{faux_refine_derive::Pred, predule::*};
 //!
 //! // 検証済みの数値を表すNewType
 //! #[repr(transparent)]
 //! #[derive(Debug, Clone)]
-//! struct ValidatedInt<P: Proof> {
+//! struct ValidatedInt<P: Pred> {
 //!     value: i32,
 //!     _proof: PhantomData<P>,
 //! }
 //!
-//! unsafe impl<P: Proof> Refined for ValidatedInt<P> {
+//! unsafe impl<P: Pred> Refined for ValidatedInt<P> {
 //!     type Inner = i32;
-//!     type Proof = P;
+//!     type Pred = P;
 //!
 //!     fn inner(&self) -> &Self::Inner {
 //!         &self.value
@@ -32,7 +32,7 @@
 //!     }
 //! }
 //!
-//! impl<P: Proof> Display for ValidatedInt<P> {
+//! impl<P: Pred> Display for ValidatedInt<P> {
 //!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 //!         write!(f, "{}", self.value)
 //!     }
@@ -55,7 +55,7 @@
 //! }
 //!
 //! // -- 制約群 -----
-//! #[derive(Debug, Clone, Proof)]
+//! #[derive(Debug, Clone, Pred)]
 //! struct IsOdd;
 //! impl<T: num::Integer> Validator<T> for IsOdd {
 //!     type Error = MyError;
@@ -65,7 +65,7 @@
 //!     }
 //! }
 //!
-//! #[derive(Debug, Clone, Proof)]
+//! #[derive(Debug, Clone, Pred)]
 //! struct Greater<const N: i32>;
 //! impl<const N: i32, T: num::Integer + num::ToPrimitive> Validator<T> for Greater<N> {
 //!     type Error = MyError;
@@ -77,8 +77,8 @@
 //!     }
 //! }
 //!
-//! #[derive(Debug, Clone, Proof)]
-//! #[proof(extends(IsOdd, Greater<1>))]
+//! #[derive(Debug, Clone, Pred)]
+//! #[Pred(extends(IsOdd, Greater<1>))]
 //! struct IsFive;
 //! impl Validator<i32> for IsFive {
 //!     type Error = MyError;
@@ -111,8 +111,8 @@ pub use faux_refine_derive;
 
 pub mod predule {
     pub use faux_refine_core::{
-        proof::{bitset::*, list::*, validator::Validator},
-        proofs,
+        predicate::{bitset::*, list::*, validator::Validator},
+        preds,
         refined::Refined,
     };
 }
@@ -123,9 +123,9 @@ struct IsSubset<const B: bool>;
 trait IsTrue {}
 impl IsTrue for IsSubset<true> {}
 
-trait Contains<Pneed: Proof> {}
+trait Contains<Pneed: Pred> {}
 
-impl<PHas: Proof, PNeed: Proof> Contains<PNeed> for PHas where
+impl<PHas: Pred, PNeed: Pred> Contains<PNeed> for PHas where
     IsSubset<{ BitSet::is_subset_of(&PHas::PROOF_BIT, &PNeed::PROOF_BIT) }>: IsTrue
 {
 }

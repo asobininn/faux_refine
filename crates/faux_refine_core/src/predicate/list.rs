@@ -8,18 +8,18 @@ pub struct Cons<H, T>(PhantomData<(H, T)>);
 
 /// ## 展開例
 /// ```
-/// proofs!()                   // Nil
-/// proofs!(IsOdd)              // Cons<IsOdd, Nil>
-/// proofs!(IsOdd, Grearter<3>) // Cons<IsOdd, Cons<Greater<3>, Nil>>
+/// preds!()                   // Nil
+/// preds!(IsOdd)              // Cons<IsOdd, Nil>
+/// preds!(IsOdd, Grearter<3>) // Cons<IsOdd, Cons<Greater<3>, Nil>>
 /// ```
 /// ## 使用例
 /// ```
-/// type OddAndGt3 = ValidedNumber<i32, proofs!(Isodd, Greater<3>)>;
+/// type OddAndGt3 = ValidedNumber<i32, preds!(Isodd, Greater<3>)>;
 /// 
-/// fn odd_only(n: &ValidatedNumber<i32, proofs!(IsOdd)>) {/* */}
+/// fn odd_only(n: &ValidatedNumber<i32, preds!(IsOdd)>) {/* */}
 /// ```
 #[macro_export]
-macro_rules! proofs {
+macro_rules! preds {
     // 終端
     () => { Nil };
     // 単一要素
@@ -28,6 +28,6 @@ macro_rules! proofs {
     };
     // 複数要素
     ($head:ty, $($tail:ty), +) => {
-        Cons<$head, proofs![$($tail),+]>
+        Cons<$head, preds![$($tail),+]>
     };
 }
