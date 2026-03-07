@@ -1,4 +1,7 @@
-use crate::proof::{bitset::Proof, validator::Validator};
+use crate::proof::{
+    bitset::Proof,
+    validator::{Validator, ValidatorFrom},
+};
 
 /// 「ある制約を満たすことが保証された値」を表すトレイト。
 /// ## 実装者が守るべき制約
@@ -69,6 +72,39 @@ pub unsafe trait Refined: Sized {
             })
         } else {
             Err(self)
+        }
+    }
+
+    fn try_refine_ref<Target>(
+        &self,
+    ) -> Result<&Target, <Target::Proof as ValidatorFrom<Self::Proof, Self::Inner>>::Error>
+    where
+        Target: Refined<Inner = Self::Inner>,
+        Target::Proof: ValidatorFrom<Self::Proof, Self::Inner>,
+    {
+        Target::Proof::validate_remaining(&self.inner())
+            .map(|_| unsafe { &*(self as *const Self as *const Target) })
+    }
+
+    fn try_refine<Target>(
+        self,
+    ) -> Result<
+        Target,
+        (
+            Self,
+            <Target::Proof as ValidatorFrom<Self::Proof, Self::Inner>>::Error,
+        ),
+    >
+    where
+        Target: Refined<Inner = Self::Inner>,
+        Target::Proof: ValidatorFrom<Self::Proof, Self::Inner>,
+    {
+        match Target::Proof::validate_remaining(&self.inner()) {
+            Ok(()) => {
+                let value = std::mem::ManuallyDrop::new(self);
+                Ok(unsafe { std::ptr::read(value.inner() as *const Self::Inner as *const Target) })
+            }
+            Err(e) => Err((self, e)),
         }
     }
 }
