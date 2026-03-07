@@ -5,10 +5,10 @@ use crate::predicate::{
     list::{Cons, Nil},
 };
 
-/// 型 `T` の値が制約を満たすかを実行時に検証するトレイト。
-/// ## 使用例
+/// A trait for validating at runtime that a value of type `T` satisfies a constraint.
+/// ## Examples
 /// ```
-/// #[derive(Debug, Clone, Pred)]
+/// #[derive(Pred, Debug, Clone)]
 /// struct IsOdd;
 ///
 /// impl<T: num::Integer> Validator<T> for IsOdd {
@@ -20,8 +20,9 @@ use crate::predicate::{
 /// }
 /// ```
 pub trait Validator<T> {
-    /// 検証失敗時に返すエラー型。<br>
-    /// [`From<Inallible>`] の実装が必要
+    /// Error type returned when verification fails.
+    /// 
+    /// required: Implementation of [`From<Infallible>`]
     type Error: From<Infallible>;
 
     fn validate(value: &T) -> Result<(), Self::Error>;
@@ -49,6 +50,8 @@ where
     }
 }
 
+/// A differential validation trait used internally by `Refined::try_into_refine`.
+/// This trait is not intended to be implemented directly by users.
 pub trait ValidatorRemaining<PHas: Pred, T> {
     type Error;
 

@@ -1,51 +1,53 @@
-//! Rustで依存型もどきを実現するクレート。
-//! ### ⚠️ 確率的なバグの可能性について
-//! このクレートは2種類の衝突が起きる可能性がある。
-//! 1. FNV-64ハッシュの衝突 (全制約型)
-//! 2. `extra`値の衝突 (constジェネリクスを持つ型)
-//!
-//! セキュリティ用途や、誤った型変換が致命的になるシステムでの使用は避けてください。
-//! ## 使用例
+//! A crate that implements a pseudo-Refinement Type in Rust.
+//! 
+//! ## ⚠️ About Potential Probabilistic Bugs
+//! This crate may experience two types of collisions:
+//! 
+//! 1. FNV-64 hash collisions (affects all constraint types)
+//! 2. Collisions of the extra value (affects types with const generics)
+//! 
+//! Both types of collisions can only result in false positives (i.e., succeeding when they should fail).
+//! 
+//! Please avoid using this crate for security-critical purposes or in systems where an incorrect type conversion could be catastrophic.
+//! ## Usage
 //! ```rust
-//! use std::{convert::Infallible, fmt::Display, marker::PhantomData};
+//! use std::{convert::Infallible, marker::PhantomData};
 //!
 //! use faux_refine::{faux_refine_derive::Pred, predule::*};
+//! use nalgebra::{DMatrix, DVector};
 //!
-//! // 検証済みの数値を表すNewType
+//! // 1. Define the Newtype pattern type
+//! // required: #[repr(transparent)]
+//!
 //! #[repr(transparent)]
 //! #[derive(Debug, Clone)]
-//! struct ValidatedInt<P: Pred> {
-//!     value: i32,
-//!     _proof: PhantomData<P>,
+//! struct Mat<P: Pred> {
+//!     data: DMatrix<f64>,
+//!     _pred: PhantomData<P>,
 //! }
 //!
-//! unsafe impl<P: Pred> Refined for ValidatedInt<P> {
-//!     type Inner = i32;
+//! unsafe impl<P: Pred> Refined for Mat<P> {
+//!     type Inner = DMatrix<f64>;
 //!     type Pred = P;
 //!
 //!     fn inner(&self) -> &Self::Inner {
-//!         &self.value
+//!         &self.data
 //!     }
 //!
 //!     fn into_inner(self) -> Self::Inner {
-//!         self.value
+//!         self.data
 //!     }
 //! }
 //!
-//! impl<P: Pred> Display for ValidatedInt<P> {
-//!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//!         write!(f, "{}", self.value)
-//!     }
-//! }
+//! // 2. Define error types
+//! // required: Implementation of From<Infallible>
 //!
-//! // エラー型
 //! #[derive(Debug)]
 //! enum MyError {
-//!     IsNotOdd,
-//!     IsNotFive,
-//!     Below(i32),
-//!     Convert,
-//!     NotASubset,
+//!     NotSquare,
+//!     IsSingular,
+//!     NotPositiveDefinite,
+//!     NotSymmetric,
 //! }
 //!
 //! impl From<Infallible> for MyError {
@@ -54,53 +56,109 @@
 //!     }
 //! }
 //!
-//! // -- 制約群 -----
-//! #[derive(Debug, Clone, Pred)]
-//! struct IsOdd;
-//! impl<T: num::Integer> Validator<T> for IsOdd {
+//! // 3. Define predicates
+//! // required: Manual definition of inclusion relationships
+//!
+//! #[derive(Pred, Debug, Clone)]
+//! struct Square;
+//! impl Validator<DMatrix<f64>> for Square {
 //!     type Error = MyError;
 //!
-//!     fn validate(value: &T) -> Result<(), Self::Error> {
-//!         value.is_odd().then_some(()).ok_or(MyError::IsNotOdd)
+//!     fn validate(value: &DMatrix<f64>) -> Result<(), Self::Error> {
+//!         value.is_square().then_some(()).ok_or(MyError::NotSquare)
 //!     }
 //! }
 //!
-//! #[derive(Debug, Clone, Pred)]
-//! struct Greater<const N: i32>;
-//! impl<const N: i32, T: num::Integer + num::ToPrimitive> Validator<T> for Greater<N> {
+//! #[derive(Pred, Debug, Clone)]
+//! #[pred(extends(Square))]
+//! struct NonSingular;
+//! impl Validator<DMatrix<f64>> for NonSingular {
 //!     type Error = MyError;
 //!
-//!     fn validate(value: &T) -> Result<(), Self::Error> {
-//!         (value.to_i32().ok_or(MyError::Convert)? > N)
+//!     fn validate(value: &DMatrix<f64>) -> Result<(), Self::Error> {
+//!         // check if (det(A) != 0)
+//!         (value.clone().lu().determinant().abs() > 1e-10)
 //!             .then_some(())
-//!             .ok_or(MyError::Below(N))
+//!             .ok_or(MyError::IsSingular)
 //!     }
 //! }
 //!
-//! #[derive(Debug, Clone, Pred)]
-//! #[Pred(extends(IsOdd, Greater<1>))]
-//! struct IsFive;
-//! impl Validator<i32> for IsFive {
+//! #[derive(Pred, Debug, Clone)]
+//! #[pred(extends(NonSingular))]
+//! struct PositiveDefinite;
+//! impl Validator<DMatrix<f64>> for PositiveDefinite {
 //!     type Error = MyError;
 //!
-//!     fn validate(value: &i32) -> Result<(), Self::Error> {
-//!         (value == &5).then_some(()).ok_or(MyError::IsNotFive)
+//!     fn validate(value: &DMatrix<f64>) -> Result<(), Self::Error> {
+//!         value
+//!             .clone()
+//!             .cholesky()
+//!             .is_some()
+//!             .then_some(())
+//!             .ok_or(MyError::NotPositiveDefinite)
 //!     }
 //! }
 //!
-//! // 使用例
-//! fn odd_and_greater1_only(n: &ValidatedInt<proofs!(IsOdd, Greater<1>)>) {
-//!     println!("{} is an odd number and greater than 1.", n);
+//! #[derive(Pred, Debug, Clone)]
+//! #[pred(extends(Square))]
+//! struct Symmetric;
+//! impl Validator<DMatrix<f64>> for Symmetric {
+//!     type Error = MyError;
+//!
+//!     fn validate(value: &DMatrix<f64>) -> Result<(), Self::Error> {
+//!         // check if (A = A^T)
+//!         ((value - value.transpose()).norm() < 1e-10)
+//!             .then_some(())
+//!             .ok_or(MyError::NotSymmetric)
+//!     }
 //! }
 //!
-//! fn five_only(n: &ValidatedInt<proofs!(IsFive)>) {
-//!     println!("{} is 5!!.", n)
+//! // 4. Use
+//! //
+//!
+//! fn determinant(m: Mat<preds!(Square)>) -> f64 {
+//!     m.into_inner().lu().determinant()
+//! }
+//!
+//! fn inverse(m: Mat<preds!(NonSingular)>) -> DMatrix<f64> {
+//!     m.into_inner().try_inverse().unwrap()
+//! }
+//!
+//! fn cholesky(m: Mat<preds!(PositiveDefinite)>) -> DMatrix<f64> {
+//!     m.into_inner().cholesky().unwrap().l()
+//! }
+//!
+//! fn least_squares(a: Mat<preds!(NonSingular)>, b: &DVector<f64>) -> DVector<f64> {
+//!     a.into_inner().lu().solve(b).unwrap()
+//! }
+//!
+//! fn condition_number(m: Mat<preds!(Symmetric)>) -> f64 {
+//!     let eigen = m.into_inner().symmetric_eigen();
+//!     let max = eigen.eigenvalues.max();
+//!     let min = eigen.eigenvalues.min();
+//!     max / min
 //! }
 //!
 //! fn main() -> Result<(), MyError> {
-//!     let n: ValidatedInt<proofs!(IsFive)> = ValidatedInt::try_new(5)?;
-//!     odd_and_greater1_only(n.weaken_ref().ok_or(MyError::NotASubset)?);
-//!     five_only(&n);
+//!     let data = DMatrix::from_row_slice(3, 3, &[4.0, 2.0, 2.0, 2.0, 5.0, 3.0, 2.0, 3.0, 6.0]);
+//!     let m = Mat::<preds!(PositiveDefinite)>::try_new(data)?;
+//!
+//!     println!(
+//!         "det  = {:.4}",
+//!         determinant(m.clone().into_weaken().unwrap())
+//!     );
+//!     println!("inv  = {:.4}", inverse(m.clone().into_weaken().unwrap()));
+//!     println!("chol = {:.4}", cholesky(m.clone()));
+//!
+//!     let b = DVector::from_vec(vec![1.0, 2.0, 3.0]);
+//!     println!(
+//!         "ls   = {}",
+//!         least_squares(m.clone().into_weaken().unwrap(), &b)
+//!     );
+//!
+//!     let sym = m.try_into_refine::<Mat<preds!(Symmetric)>>().map_err(|e| e.error)?;
+//!     println!("condition number = {:.4}", condition_number(sym));
+//!
 //!     Ok(())
 //! }
 //! ```
@@ -117,7 +175,7 @@ pub mod predule {
     };
 }
 
-/*  TODO: 未来に期待
+/*  (WIP) 未来に期待
 struct IsSubset<const B: bool>;
 
 trait IsTrue {}

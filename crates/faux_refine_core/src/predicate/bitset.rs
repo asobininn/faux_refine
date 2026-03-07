@@ -1,9 +1,9 @@
 use crate::predicate::list::{Cons, Nil};
 
-/// ビットセットの幅(256bit)
+/// Number of bitsets(256bit).
 const BITS_NUM: usize = 4;
 
-/// FNV-64ハッシュで使用する4つのシード値(xxHashより引用)
+/// Four seed values used in the FNV-64 hash (cited from xxHash).
 pub const SEEDS: [u64; BITS_NUM] = [
     0x9e3779b185ebca87,
     0xc2b2ae3d27d4eb4f,
@@ -17,9 +17,9 @@ pub struct BitSet {
 }
 
 impl BitSet {
-    /// selfがtargetの部分集合かを判定する。
-    /// ### ⚠️ハッシュ衝突による誤判定あり
-    /// 包含関係がないのに`true`を返す可能性あり。
+    /// Checks whether self is a subset of target.
+    /// ### ⚠️ Due to hash collisions, this check may produce false positives,
+    /// returning true even when no actual subset relationship exists.
     pub const fn is_subset_of(&self, target: &Self) -> bool {
         let mut i = 0;
         while i < BITS_NUM {

@@ -33,27 +33,33 @@ impl Parse for PredAttr {
 
 // #[derive(Pred)]の実装
 
-/// 制約型に[`Pred`]を自動実装するderiveマクロ。<br>
-/// 型の名前とconstジェネリクスパラメータから`BitSet`を定数計算で生成し、
-/// `Pred::PRED_BIT`として実装する。
-/// ## 実装例
+/// A derive macro that automatically implements [Pred] for constraint types.
+///
+/// It generates a BitSet at compile time from the type name and its const generic parameters,
+/// implements it as `Pred::PRED_BIT`.
+/// ## Examples
 /// ```rust
-/// #[derive(Pred)]
-/// struct IsOdd;
-/// 
-/// #[derive(Pred)]
-/// #[proofs(extends(IsNat, IsOdd))]
-/// struct IsOne;
+/// #[derive(Pred, Debug, Clone)]
+/// struct Square;
+///
+/// #[derive(Pred, Debug, Clone)]
+/// #[pred(extends(Square))]
+/// struct NonSingular;
+///
+/// #[derive(Pred, Debug, Clone)]
+/// #[pred(extends(NonSingular))]
+/// struct PositiveDefinite;
 /// ```
-/// ## `extends`による制約の継承
-/// `#[Pred(extends(..))]`を付与すると、親制約の`PRED_BIT`をORで合算する。<br>
-/// これにより`weaken`/`weaken_ref`で親制約への変換が成立する。
-/// 
-/// ## ⚠️ 確率的な誤判定の可能性(2種類)
-/// 1. FNV-64ハッシュの衝突 (全制約型)
-/// 2. `extra`値の衝突 (constジェネリクスを持つ型)
-/// 
-/// どちらの衝突も`weaken`/`weaken_ref`が誤って成功する方向にのみ働く。 
+/// ## Constraint Inheritance with `extends`
+/// When `#[Pred(extends(..))]` is specified, the parent constraint’s `PRED_BIT` values are combined using a bitwise OR.
+///
+/// ## ⚠️ About Potential Probabilistic Bugs
+/// This crate may experience two types of collisions:
+///
+/// 1. FNV-64 hash collisions (affects all constraint types)
+/// 2. Collisions of the extra value (affects types with const generics)
+///
+/// Both types of collisions can only result in false positives (i.e., succeeding when they should fail).
 #[proc_macro_derive(Pred, attributes(pred))]
 pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

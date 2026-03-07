@@ -6,13 +6,13 @@ pub struct Nil;
 #[derive(Debug, Clone, Copy)]
 pub struct Cons<H, T>(PhantomData<(H, T)>);
 
-/// ## 展開例
+/// ## Example Layout
 /// ```
 /// preds!()                   // Nil
 /// preds!(IsOdd)              // Cons<IsOdd, Nil>
 /// preds!(IsOdd, Grearter<3>) // Cons<IsOdd, Cons<Greater<3>, Nil>>
 /// ```
-/// ## 使用例
+/// ## Examples
 /// ```
 /// type OddAndGt3 = ValidedNumber<i32, preds!(Isodd, Greater<3>)>;
 /// 
