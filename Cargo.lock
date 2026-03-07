@@ -37,19 +37,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "faux_refine"
+name = "faux-refine"
 version = "0.1.0"
 dependencies = [
- "faux_refine_core",
- "faux_refine_derive",
+ "faux-refine-core",
+ "faux-refine-derive",
 ]
 
 [[package]]
-name = "faux_refine_core"
+name = "faux-refine-core"
 version = "0.1.0"
 
 [[package]]
-name = "faux_refine_derive"
+name = "faux-refine-derive"
 version = "0.1.0"
 dependencies = [
  "darling",
