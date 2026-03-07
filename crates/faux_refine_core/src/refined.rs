@@ -1,5 +1,11 @@
 use crate::predicate::{bitset::Pred, validator::*};
 
+#[derive(Debug)]
+pub struct RefineError<T, E> {
+    pub value: T,
+    pub error: E,
+}
+
 /// 「ある制約を満たすことが保証された値」を表すトレイト。
 /// ## 実装者が守るべき制約
 /// 1. 構造が`#[repr(transparent)]`可能であること
@@ -49,7 +55,7 @@ pub unsafe trait Refined: Sized {
         }
     }
 
-    fn weaken_ref<Target>(&self) -> Option<&Target>
+    fn as_weaken_ref<Target>(&self) -> Option<&Target>
     where
         Target: Refined<Inner = Self::Inner>,
     {
@@ -58,7 +64,7 @@ pub unsafe trait Refined: Sized {
             .then_some(unsafe { &*(self as *const Self as *const Target) })
     }
 
-    fn weaken<Target>(self) -> Result<Target, Self>
+    fn into_weaken<Target>(self) -> Result<Target, Self>
     where
         Target: Refined<Inner = Self::Inner>,
     {
@@ -72,7 +78,7 @@ pub unsafe trait Refined: Sized {
         }
     }
 
-    fn try_refine_ref<Target>(
+    fn try_as_refine_ref<Target>(
         &self,
     ) -> Result<&Target, <Target::Pred as ValidatorRemaining<Self::Pred, Self::Inner>>::Error>
     where
@@ -83,14 +89,11 @@ pub unsafe trait Refined: Sized {
             .map(|_| unsafe { &*(self as *const Self as *const Target) })
     }
 
-    fn try_refine<Target>(
+    fn try_into_refine<Target>(
         self,
     ) -> Result<
         Target,
-        (
-            Self,
-            <Target::Pred as ValidatorRemaining<Self::Pred, Self::Inner>>::Error,
-        ),
+        RefineError<Self, <Target::Pred as ValidatorRemaining<Self::Pred, Self::Inner>>::Error>,
     >
     where
         Target: Refined<Inner = Self::Inner>,
@@ -101,7 +104,7 @@ pub unsafe trait Refined: Sized {
                 let value = std::mem::ManuallyDrop::new(self);
                 Ok(unsafe { std::ptr::read(value.inner() as *const Self::Inner as *const Target) })
             }
-            Err(e) => Err((self, e)),
+            Err(error) => Err(RefineError { value: self, error }),
         }
     }
 }
