@@ -1,59 +1,56 @@
 # faux_refine
 
-Rustで依存型もどきを実現するライブラリ。  
+A crate that implements a pseudo-Refinement Type in Rust.
 
-```rust
-// 制約は最小限だけ宣言すればよい。関数のシグネチャがそのまま必要なコンテキストを表現する。
-fn send_email(address: &ValidatedEmail<proofs!(NonEmpty, ValidFormat)>) { ... }
-fn log(address: &ValidatedEmail<proofs!(NonEmpty)>) { ... }
-
-let email = ValidatedEmail::try_new(input)?;  // 一度だけ検証
-send_email(&email);                           // そのまま渡せる
-log(email.weaken_ref().unwrap());             // 制約を緩めてそのまま渡せる
+``` cargo
+cargo add faux-refine -F "derive"
 ```
 
-## クイックスタート
+``` toml
+[dependencies]
+faux_refine = { version = "0.1" features = ["derive"] }
+```
+
+## Usage
 
 ```rust
-use std::{convert::Infallible, fmt::Display, marker::PhantomData};
+use std::{convert::Infallible, marker::PhantomData};
 
-use faux_refine::{faux_refine_derive::Proof, predule::*};
+use faux_refine::{faux_refine_derive::Pred, predule::*};
+use nalgebra::{DMatrix, DVector};
 
-// 1. Newtypeパターンのラッパー型を定義する
+// 1. Define the Newtype pattern type
+// required: #[repr(transparent)]
+
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-struct ValidatedInt<P: Proof> {
-    value: i32,
-    _proof: PhantomData<P>,
+struct Mat<P: Pred> {
+    data: DMatrix<f64>,
+    _pred: PhantomData<P>,
 }
 
-unsafe impl<P: Proof> Refined for ValidatedInt<P> {
-    type Inner = i32;
-    type Proof = P;
+unsafe impl<P: Pred> Refined for Mat<P> {
+    type Inner = DMatrix<f64>;
+    type Pred = P;
 
     fn inner(&self) -> &Self::Inner {
-        &self.value
+        &self.data
     }
 
     fn into_inner(self) -> Self::Inner {
-        self.value
+        self.data
     }
 }
 
-impl<P: Proof> Display for ValidatedInt<P> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
+// 2. Define error types
+// required: Implementation of From<Infallible>
 
-// エラー型
 #[derive(Debug)]
 enum MyError {
-    IsNotOdd,
-    IsNotFive,
-    Below(i32),
-    Convert,
-    NotASubset,
+    NotSquare,
+    IsSingular,
+    NotPositiveDefinite,
+    NotSymmetric,
 }
 
 impl From<Infallible> for MyError {
@@ -62,53 +59,109 @@ impl From<Infallible> for MyError {
     }
 }
 
-// 2. 制約を定義する
-#[derive(Debug, Clone, Proof)]
-struct IsOdd;
-impl<T: num::Integer> Validator<T> for IsOdd {
+// 3. Define predicates
+// required: Manual definition of inclusion relationships
+
+#[derive(Pred, Debug, Clone)]
+struct Square;
+impl Validator<DMatrix<f64>> for Square {
     type Error = MyError;
 
-    fn validate(value: &T) -> Result<(), Self::Error> {
-        value.is_odd().then_some(()).ok_or(MyError::IsNotOdd)
+    fn validate(value: &DMatrix<f64>) -> Result<(), Self::Error> {
+        value.is_square().then_some(()).ok_or(MyError::NotSquare)
     }
 }
 
-#[derive(Debug, Clone, Proof)]
-struct Greater<const N: i32>;
-impl<const N: i32, T: num::Integer + num::ToPrimitive> Validator<T> for Greater<N> {
+#[derive(Pred, Debug, Clone)]
+#[pred(extends(Square))]
+struct NonSingular;
+impl Validator<DMatrix<f64>> for NonSingular {
     type Error = MyError;
 
-    fn validate(value: &T) -> Result<(), Self::Error> {
-        (value.to_i32().ok_or(MyError::Convert)? > N)
+    fn validate(value: &DMatrix<f64>) -> Result<(), Self::Error> {
+        // check if (det(A) != 0)
+        (value.clone().lu().determinant().abs() > 1e-10)
             .then_some(())
-            .ok_or(MyError::Below(N))
+            .ok_or(MyError::IsSingular)
     }
 }
 
-#[derive(Debug, Clone, Proof)]
-#[proof(extends(IsOdd, Greater<1>))]
-struct IsFive;
-impl Validator<i32> for IsFive {
+#[derive(Pred, Debug, Clone)]
+#[pred(extends(NonSingular))]
+struct PositiveDefinite;
+impl Validator<DMatrix<f64>> for PositiveDefinite {
     type Error = MyError;
 
-    fn validate(value: &i32) -> Result<(), Self::Error> {
-        (value == &5).then_some(()).ok_or(MyError::IsNotFive)
+    fn validate(value: &DMatrix<f64>) -> Result<(), Self::Error> {
+        value
+            .clone()
+            .cholesky()
+            .is_some()
+            .then_some(())
+            .ok_or(MyError::NotPositiveDefinite)
     }
 }
 
-// 3. 使う
-fn odd_and_greater1_only(n: &ValidatedInt<proofs!(IsOdd, Greater<1>)>) {
-    println!("{} is an odd number and greater than 1.", n);
+#[derive(Pred, Debug, Clone)]
+#[pred(extends(Square))]
+struct Symmetric;
+impl Validator<DMatrix<f64>> for Symmetric {
+    type Error = MyError;
+
+    fn validate(value: &DMatrix<f64>) -> Result<(), Self::Error> {
+        // check if (A = A^T)
+        ((value - value.transpose()).norm() < 1e-10)
+            .then_some(())
+            .ok_or(MyError::NotSymmetric)
+    }
 }
 
-fn five_only(n: &ValidatedInt<proofs!(IsFive)>) {
-    println!("{} is 5!!.", n)
+// 4. Use
+//
+
+fn determinant(m: Mat<preds!(Square)>) -> f64 {
+    m.into_inner().lu().determinant()
+}
+
+fn inverse(m: Mat<preds!(NonSingular)>) -> DMatrix<f64> {
+    m.into_inner().try_inverse().unwrap()
+}
+
+fn cholesky(m: Mat<preds!(PositiveDefinite)>) -> DMatrix<f64> {
+    m.into_inner().cholesky().unwrap().l()
+}
+
+fn least_squares(a: Mat<preds!(NonSingular)>, b: &DVector<f64>) -> DVector<f64> {
+    a.into_inner().lu().solve(b).unwrap()
+}
+
+fn condition_number(m: Mat<preds!(Symmetric)>) -> f64 {
+    let eigen = m.into_inner().symmetric_eigen();
+    let max = eigen.eigenvalues.max();
+    let min = eigen.eigenvalues.min();
+    max / min
 }
 
 fn main() -> Result<(), MyError> {
-    let n: ValidatedInt<proofs!(IsFive)> = ValidatedInt::try_new(5)?;
-    odd_and_greater1_only(n.weaken_ref().ok_or(MyError::NotASubset)?);
-    five_only(&n);
+    let data = DMatrix::from_row_slice(3, 3, &[4.0, 2.0, 2.0, 2.0, 5.0, 3.0, 2.0, 3.0, 6.0]);
+    let m = Mat::<preds!(PositiveDefinite)>::try_new(data)?;
+
+    println!(
+        "det  = {:.4}",
+        determinant(m.clone().into_weaken().unwrap())
+    );
+    println!("inv  = {:.4}", inverse(m.clone().into_weaken().unwrap()));
+    println!("chol = {:.4}", cholesky(m.clone()));
+
+    let b = DVector::from_vec(vec![1.0, 2.0, 3.0]);
+    println!(
+        "ls   = {}",
+        least_squares(m.clone().into_weaken().unwrap(), &b)
+    );
+
+    let sym = m.try_into_refine::<Mat<preds!(Symmetric)>>().map_err(|e| e.error)?;
+    println!("condition number = {:.4}", condition_number(sym));
+
     Ok(())
 }
 ```
