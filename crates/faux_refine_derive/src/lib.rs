@@ -66,7 +66,7 @@ pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
     // #[pred(extends(..))]をパースする
     let extends: Vec<Type> = {
         let mut result = Vec::new();
-        for attr in input.attrs.iter().filter(|a| a.path().is_ident("Pred")) {
+        for attr in input.attrs.iter().filter(|a| a.path().is_ident("pred")) {
             match attr.parse_args::<PredAttr>() {
                 Ok(parsed) => result.extend(parsed.extends),
                 Err(e) => return e.into_compile_error().into(),
