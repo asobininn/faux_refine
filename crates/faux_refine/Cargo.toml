@@ -9,4 +9,4 @@ faux_refine_core = { path = "../faux_refine_core" }
 faux_refine_derive = { path = "../faux_refine_derive", optional = true }
 
 [features]
-derives = ["faux_refine_derive"]
+derive = ["faux_refine_derive"]

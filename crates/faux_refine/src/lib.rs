@@ -164,7 +164,7 @@
 //! ```
 
 pub use faux_refine_core;
-#[cfg(feature = "derives")]
+#[cfg(feature = "derive")]
 pub use faux_refine_derive;
 
 pub mod predule {
