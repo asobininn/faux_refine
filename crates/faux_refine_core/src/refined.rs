@@ -15,7 +15,7 @@ pub struct RefineError<T, E> {
 /// required: #\[repr(transparent)]
 /// ## Examples
 /// ```rust
-/// use std::marker::PhantomData;
+/// use core::marker::PhantomData;
 /// use faux_refine::{faux_refine_derive::Pred, predule::*};
 ///
 /// #[repr(transparent)]
@@ -56,16 +56,16 @@ pub unsafe trait Refined: Sized {
         Self::Pred: Validator<Self::Inner>,
     {
         Self::Pred::validate(&value).map(|_| unsafe {
-            let mut slot = std::mem::MaybeUninit::<Self>::uninit();
-            std::ptr::write(slot.as_mut_ptr() as *mut Self::Inner, value);
+            let mut slot = core::mem::MaybeUninit::<Self>::uninit();
+            core::ptr::write(slot.as_mut_ptr() as *mut Self::Inner, value);
             slot.assume_init()
         })
     }
 
     unsafe fn new_unchecked(value: Self::Inner) -> Self {
         unsafe {
-            let mut slot = std::mem::MaybeUninit::<Self>::uninit();
-            std::ptr::write(slot.as_mut_ptr() as *mut Self::Inner, value);
+            let mut slot = core::mem::MaybeUninit::<Self>::uninit();
+            core::ptr::write(slot.as_mut_ptr() as *mut Self::Inner, value);
             slot.assume_init()
         }
     }
@@ -111,8 +111,8 @@ pub unsafe trait Refined: Sized {
     {
         if Target::Pred::PRED_BIT.is_subset_of(&Self::Pred::PRED_BIT) {
             Ok(unsafe {
-                let value = std::mem::ManuallyDrop::new(self);
-                std::ptr::read(value.inner() as *const Self::Inner as *const Target)
+                let value = core::mem::ManuallyDrop::new(self);
+                core::ptr::read(value.inner() as *const Self::Inner as *const Target)
             })
         } else {
             Err(self)
@@ -128,7 +128,7 @@ pub unsafe trait Refined: Sized {
     /// - `Ok(&Target)` — When the difference constraint is satisfied.
     /// - `Err(Error)` — Returns the error from the first failing constraint during the validation of `Self::Proof`.
     /// ## Examples
-    /// ```rust 
+    /// ```rust
     /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(5)?;
     /// let rn = n.try_as_refine_ref::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(rn.is_ok());
@@ -161,7 +161,7 @@ pub unsafe trait Refined: Sized {
     /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(5)?;
     /// let new_n = n.try_into_refine::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(new_n.is_ok());
-    /// 
+    ///
     /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(1)?;
     /// let new_n = n.try_into_refine::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(new_n.is_err());
@@ -178,8 +178,12 @@ pub unsafe trait Refined: Sized {
     {
         match Target::Pred::validate_remaining(&self.inner()) {
             Ok(()) => {
-                let value = std::mem::ManuallyDrop::new(self);
-                Ok(unsafe { std::ptr::read(value.inner() as *const Self::Inner as *const Target) })
+                let value = core::mem::ManuallyDrop::new(self);
+                Ok(
+                    unsafe {
+                        core::ptr::read(value.inner() as *const Self::Inner as *const Target)
+                    },
+                )
             }
             Err(error) => Err(RefineError { value: self, error }),
         }

@@ -1,4 +1,5 @@
-use std::marker::PhantomData;
+use core::marker::PhantomData;
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct Nil;

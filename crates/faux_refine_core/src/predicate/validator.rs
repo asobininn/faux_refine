@@ -1,4 +1,5 @@
-use std::convert::Infallible;
+
+use core::convert::Infallible;
 
 use crate::predicate::{
     bitset::Pred,
