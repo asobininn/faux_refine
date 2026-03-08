@@ -3,6 +3,12 @@ name = "faux-refine-derive"
 version = "0.1.0"
 edition = "2024"
 authors = ["asobi"]
+description = "Derive macros for faux-refine. Automatically implements Pred."
+readme = "../../README.md"
+keywords = ["refinement", "newtype", "validation", "faux-refine"]
+categories = ["rust-patterns"]
+repository = "https://github.com/asobininn/faux_refine"
+license = "MIT"
 
 [lib]
 proc-macro = true

@@ -3,6 +3,12 @@ name = "faux-refine"
 version = "0.1.0"
 edition = "2024"
 authors = ["asobi"]
+description = "A crate that implements a pseudo-Refinement Type in Rust."
+readme = "../../README.md"
+keywords = ["refinement", "newtype", "validation", "faux-refine"]
+categories = ["rust-patterns"]
+repository = "https://github.com/asobininn/faux_refine"
+license = "MIT"
 
 [dependencies]
 faux-refine-core = { path = "../faux_refine_core" }

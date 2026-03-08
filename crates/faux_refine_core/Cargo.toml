@@ -3,5 +3,11 @@ name = "faux-refine-core"
 version = "0.1.0"
 edition = "2024"
 authors = ["asobi"]
+description = "Core traits and types for pseudo-Refinement Types."
+readme = "../../README.md"
+keywords = ["refinement", "newtype", "validation", "faux-refine"]
+categories = ["rust-patterns", "no-std"]
+repository = "https://github.com/asobininn/faux_refine"
+license = "MIT"
 
 [dependencies]
