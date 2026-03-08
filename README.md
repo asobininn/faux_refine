@@ -166,33 +166,33 @@ fn main() -> Result<(), MyError> {
 }
 ```
 
-## 特徴
+## Features
 
-### O(1) での Strong → Weak 変換
+### O(1) Strong → Weak conversion
 
 ```rust
 let n: ValidatedInt<preds!(IsOdd, Greater<3>)> = ValidatedInt::try_new(11)?;
-// ビット比較のみ
+// Only a bitset comparison
 let n: ValidatedInt<preds!(IsOdd)> = n.into_weaken().unwrap();
 ```
 
-### 重複チェックなしの Weak → Strong 変換
+### Weak → Strong conversion without redundant checks
 
 ```rust
 let n: ValidatedInt<preds!(IsOdd)> = ValidatedInt::try_new(11)?;
-// IsGreater<3>のみを確認する
+// Only checks IsGreater<3>
 let n: ValidatedInt<preds!(IsOdd, Greater<3>)> = n.try_into_refine().map_err(|e| e.error)?;
 ```
 
-### 複数の制約を合成する
+### Composing multiple predicates
 
-`preds!`マクロで複数の制約を組み合わせる。
+Combine multiple predicates using the `preds!` macro.
 
 ```rust
 preds!(NonEmpty, ValidFormat, DomainExists)
 ```
 
-`[pred(extends(..))]`マクロで制約を継承する。
+Use the `#[pred(extends(..))]` attribute to inherit predicates.
 
 ```rust
 #[derive(Preds)]
@@ -200,18 +200,22 @@ preds!(NonEmpty, ValidFormat, DomainExists)
 struct IsFive;
 ```
 
-### const ジェネリクスの順序区別
+### Order distinction in const generics
 
-`Foo<const A: i32, const B: i32>`のような型において、`Foo<3, 4>`と`Foo<4, 3>`は別の制約として扱われる。
+For types like `T<const A: i32, const B: i32>`, `T<3, 4>` and `T<4, 3>` are treated as different predicates.
 
-## 制限事項
+## Limitations
 
-### `preds!` の順序
+### Order of `preds!`
 
-`T<preds!(A, B)>` と `T<preds!(B, A)>` は別の型として扱われるため、そのままでは渡せません。
-`weaken` / `refine` を使えば同強度の制約間の変換は可能です。
+`T<preds!(A, B)>` and `T<preds!(B, A)>` are treated as different types,
+so they cannot be used interchangeably.
 
-`generic_const_exprs` の安定化後に `Contains` トレイトとして対応予定です。
+Conversions between predicates of the same strength are possible using
+`weaken` / `refine`.
+
+Support via a `Contains` trait is planned once `generic_const_exprs`
+is stabilized.
 
 ```rust
 let n = ValidatedInt::<preds!(IsNat, IsOdd)>::try_new(11)?;
@@ -219,31 +223,33 @@ let rn: &ValidatedInt<preds!(IsOdd, IsNat)> = &n.as_weaken_ref().unwrap();
 let n: ValidatedInt<preds!(IsOdd, IsNat)> = n.try_into_refine().unwrap();
 ```
 
-### 制約の意味論的な演算・包含関係
+### Semantic operations and predicate relationships
 
-このライブラリは「どの制約を持つか」をビットセットで管理しますが、
-制約同士の意味論的な関係を知りません。
+This library tracks which predicates are present using a bitset,
+but it does not understand the semantic relationships between predicates.
 
-#### 演算の自動証明が不可能
+#### Automatic proof of operations is impossible
 
-奇数同士を足すと偶数になることは数学的に自明ですが、
-ライブラリはその意味を知らないため`unwrap`が必要になります。
+Mathematically, adding two odd numbers results in an even number.
+However, the library does not know this fact, so an `unwrap` is required.
 
 ```rust
-// IsOdd かつ IsPositive な数を足したら IsEven になるはずだが導出できない
+// Adding two numbers that are IsOdd and IsPositive should produce IsEven,
+// but the library cannot derive it automatically.
 fn add_odd_positives(
     a: ValidatedInt<preds!(IsOdd, IsPositive)>,
     b: ValidatedInt<preds!(IsOdd, IsPositive)>,
 ) -> ValidatedInt<preds!(IsEven)> {
-    // 自明なはずだが避けられない
+    // Obvious to humans, but unavoidable here
     ValidatedInt::try_new(a.into_inner() + b.into_inner()).unwrap() 
 }
 ```
 
-#### 順序関係の包含
+#### Inclusion in ordered predicates
 
-`InRange<0, 10>`は意味的には`InRange<0, 20>`を包含しますが、
-const ジェネリクスの大小関係を型システムで表現できないため`weaken`が失敗します。
+`InRange<0, 10>` semantically implies `InRange<0, 20>`,
+but the Rust type system cannot express ordering relationships
+between const generics, so `weaken` fails.
 
 ```rust
 let n: ValidatedInt<preds!(InRange<0, 10>)> = ValidatedInt::try_new(5)?;
@@ -253,9 +259,9 @@ assert!(
 );
 ```
 
-## 将来の展望(`generic_const_exprs`の安定化待ち)
+## Future Plans (waiting for stabilization of `generic_const_exprs`)
 
-### `Contains`トレイトによる`impl`の上位制約への実装
+### Implementing methods for stronger predicates via `Contains`
 
 ```rust
 impl<P: Pred> ValidatedString<P>
@@ -268,8 +274,6 @@ where
 let s: ValidatedString<preds!(NonEmpty, MinLength<2>)> = ...;
 s.foo(); 
 ```
-
-### `preds!`の順序が無関係になる
 
 ## ⚠️ About Potential Probabilistic Bugs
 
