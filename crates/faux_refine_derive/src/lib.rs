@@ -100,7 +100,7 @@ pub fn derive_validator_pred(input: TokenStream) -> TokenStream {
         quote! {
             {
                 // const MANGLE: &str =
-                const MANGLED: &str = concat!(module_path!(), "::", #name_str);
+                const MANGLED: &str = concat!(env!("CARGO_PKG_NAME"), "@", module_path!(), "::", #name_str);
                 BitSet {
                     bits: [
                         fnv64_seed(MANGLED, SEEDS[0]) #eb0,
@@ -118,7 +118,7 @@ pub fn derive_validator_pred(input: TokenStream) -> TokenStream {
         let param_idents: Vec<_> = const_params.iter().map(|p| &p.ident).collect();
         quote! {
             {
-                const MANGLED: &str = concat!(module_path!(), "::", #name_str);
+                const MANGLED: &str = concat!(env!("CARGO_PKG_NAME"), "@", module_path!(), "::", #name_str);
                 let extra: u64 = 0u64
                     #(  .wrapping_add(#param_idents as u64)
                         .wrapping_mul(0x9e3779b97f4a7c15u64) )*;
