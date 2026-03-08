@@ -1,4 +1,4 @@
-# faux_refine
+# faux-refine
 
 A crate that implements a pseudo-Refinement Type in Rust.
 
@@ -166,89 +166,122 @@ fn main() -> Result<(), MyError> {
 }
 ```
 
-## できること
+## 特徴
 
-### 強い制約から弱い制約へのO(1)での変換
+### O(1) での Strong → Weak 変換
 
 ```rust
-let n: ValidatedNumber<i32, proofs!(IsOdd, Greater<3>)> = ValidatedNumber::try_new(11)?;
-let n2: ValidatedNumber<i32, proofs!(IsOdd)> = n.weaken().unwrap();
+let n: ValidatedInt<preds!(IsOdd, Greater<3>)> = ValidatedInt::try_new(11)?;
+// ビット比較のみ
+let n: ValidatedInt<preds!(IsOdd)> = n.into_weaken().unwrap();
+```
+
+### 重複チェックなしの Weak → Strong 変換
+
+```rust
+let n: ValidatedInt<preds!(IsOdd)> = ValidatedInt::try_new(11)?;
+// IsGreater<3>のみを確認する
+let n: ValidatedInt<preds!(IsOdd, Greater<3>)> = n.try_into_refine().map_err(|e| e.error)?;
 ```
 
 ### 複数の制約を合成する
 
-`proof!`マクロで複数の制約を組み合わせる。
+`preds!`マクロで複数の制約を組み合わせる。
 
 ```rust
-proofs!(NonEmpty, ValidFormat, DomainExists)
+preds!(NonEmpty, ValidFormat, DomainExists)
 ```
 
-`[proof(extends(..))]`マクロで上位の制約を定義する。
+`[pred(extends(..))]`マクロで制約を継承する。
 
 ```rust
-#[derive(Proof)]
-#[proof(extends(IsOdd, Greater<1>))]
+#[derive(Preds)]
+#[pred(extends(IsOdd, Greater<1>))]
 struct IsFive;
 ```
 
-### constジェネリクスの順序を区別する
+### const ジェネリクスの順序区別
 
 `Foo<const A: i32, const B: i32>`のような型において、`Foo<3, 4>`と`Foo<4, 3>`は別の制約として扱われる。
 
-## できないこと
+## 制限事項
 
-### 制約パラメータの意味論的計算
+### `preds!` の順序
 
-`MinLength<2>`と`MinLength<3>`を合成しても`MinLength<5>`は自動導出できない。  
-証明はユーザの責任で行う必要がある。
+`T<preds!(A, B)>` と `T<preds!(B, A)>` は別の型として扱われるため、そのままでは渡せません。
+`weaken` / `refine` を使えば同強度の制約間の変換は可能です。
+
+`generic_const_exprs` の安定化後に `Contains` トレイトとして対応予定です。
 
 ```rust
-fn concat(
-    a: ValidatedString<proofs!(MinLength<2>)>,
-    b: ValidatedString<proofs!(MinLength<3>)>,
-) -> ValidatedString<proofs!(MinLength<5>)> {
-    let value = format!("{}{}", a.inner(), b.inner());
-    ValidatedString::try_new(value).unwrap()  // 型レベルで保証できない
+let n = ValidatedInt::<preds!(IsNat, IsOdd)>::try_new(11)?;
+let rn: &ValidatedInt<preds!(IsOdd, IsNat)> = &n.as_weaken_ref().unwrap();
+let n: ValidatedInt<preds!(IsOdd, IsNat)> = n.try_into_refine().unwrap();
+```
+
+### 制約の意味論的な演算・包含関係
+
+このライブラリは「どの制約を持つか」をビットセットで管理しますが、
+制約同士の意味論的な関係を知りません。
+
+#### 演算の自動証明が不可能
+
+奇数同士を足すと偶数になることは数学的に自明ですが、
+ライブラリはその意味を知らないため`unwrap`が必要になります。
+
+```rust
+// IsOdd かつ IsPositive な数を足したら IsEven になるはずだが導出できない
+fn add_odd_positives(
+    a: ValidatedInt<preds!(IsOdd, IsPositive)>,
+    b: ValidatedInt<preds!(IsOdd, IsPositive)>,
+) -> ValidatedInt<preds!(IsEven)> {
+    // 自明なはずだが避けられない
+    ValidatedInt::try_new(a.into_inner() + b.into_inner()).unwrap() 
 }
 ```
 
-### 順序関係をもつ制約
+#### 順序関係の包含
 
-`MinLength<4>`は`MinLength<3>`を包含するが、両者は別の`PROOF_BIT`を持つため`weaken`は失敗する。
-
-### 強い制約へ変換時の最小限のチェック
-
-線形型システムを活用すれば変数に必要なチェックを最小限にできるが、このクレートではWeak → Strongの変換は`new_unchecked`による`unsafe`なものか、`try_new`による再検証が必要となる。
-
-## 将来できること(`generic_const_exprs`の安定化待ち)
-
-### `Contains`トレイトによる`impl`の自然な継承
+`InRange<0, 10>`は意味的には`InRange<0, 20>`を包含しますが、
+const ジェネリクスの大小関係を型システムで表現できないため`weaken`が失敗します。
 
 ```rust
-impl<P: Proof> ValidatedString<P>
+let n: ValidatedInt<preds!(InRange<0, 10>)> = ValidatedInt::try_new(5)?;
+assert!(
+    n.into_weaken::<ValidatedInt<preds!(InRange<0, 20>)>>()
+        .is_err()
+);
+```
+
+## 将来の展望(`generic_const_exprs`の安定化待ち)
+
+### `Contains`トレイトによる`impl`の上位制約への実装
+
+```rust
+impl<P: Pred> ValidatedString<P>
 where
-    P: Contains<proofs!(NonEmpty)>, 
+    P: Contains<preds!(NonEmpty)>, 
 {
     fn foo(&self) { ... }  
 }
 
-let s: ValidatedString<proofs!(NonEmpty, MinLength<2>)> = ...;
+let s: ValidatedString<preds!(NonEmpty, MinLength<2>)> = ...;
 s.foo(); 
 ```
 
-### `proofs!`の順序が無関係になる
+### `preds!`の順序が無関係になる
 
-## ⚠️ 確率的なバグの可能性
+## ⚠️ About Potential Probabilistic Bugs
 
-このクレートは2種類の衝突が起きる可能性がある。
+This crate may experience two types of collisions:
 
-1. FNV-64ハッシュの衝突 (全制約型)
-2. `extra`値の衝突 (constジェネリクスを持つ型)
+1. FNV-64 hash collisions (affects all constraint types)
+2. Collisions of the extra value (affects types with const generics)
 
-どちらの衝突も`weaken`/`weaken_ref`が誤って成功する方向にのみ働く。  
+Both types of collisions can only result in false positives (i.e., succeeding when they should fail).
 
-セキュリティ用途や、誤った型変換が致命的になるシステムでの使用は避けてください。
+Please avoid using this crate for security-critical purposes or in systems where an incorrect type conversion could be catastrophic.
 
-## ライセンス
+## License
 
-MIT
+MIT license
