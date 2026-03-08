@@ -61,7 +61,7 @@ impl Parse for PredAttr {
 ///
 /// Both types of collisions can only result in false positives (i.e., succeeding when they should fail).
 #[proc_macro_derive(Pred, attributes(pred))]
-pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
+pub fn derive_validator_pred(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let generics = &input.generics;
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
@@ -98,13 +98,17 @@ pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
     let bit_expr = if const_params.is_empty() {
         // 通常の型
         quote! {
-            BitSet {
-                bits: [
-                    fnv64_seed(#name_str, SEEDS[0]) #eb0,
-                    fnv64_seed(#name_str, SEEDS[1]) #eb1,
-                    fnv64_seed(#name_str, SEEDS[2]) #eb2,
-                    fnv64_seed(#name_str, SEEDS[3]) #eb3,
-                ]
+            {
+                // const MANGLE: &str =
+                const MANGLED: &str = concat!(module_path!(), "::", #name_str);
+                BitSet {
+                    bits: [
+                        fnv64_seed(MANGLED, SEEDS[0]) #eb0,
+                        fnv64_seed(MANGLED, SEEDS[1]) #eb1,
+                        fnv64_seed(MANGLED, SEEDS[2]) #eb2,
+                        fnv64_seed(MANGLED, SEEDS[3]) #eb3,
+                    ]
+                }
             }
         }
     } else {
@@ -114,15 +118,16 @@ pub fn derive_validator_proof(input: TokenStream) -> TokenStream {
         let param_idents: Vec<_> = const_params.iter().map(|p| &p.ident).collect();
         quote! {
             {
+                const MANGLED: &str = concat!(module_path!(), "::", #name_str);
                 let extra: u64 = 0u64
                     #(  .wrapping_add(#param_idents as u64)
                         .wrapping_mul(0x9e3779b97f4a7c15u64) )*;
                 BitSet {
                     bits: [
-                        fnv64_seed_with_int(#name_str, extra, SEEDS[0]) #eb0,
-                        fnv64_seed_with_int(#name_str, extra, SEEDS[1]) #eb1,
-                        fnv64_seed_with_int(#name_str, extra, SEEDS[2]) #eb2,
-                        fnv64_seed_with_int(#name_str, extra, SEEDS[3]) #eb3,
+                        fnv64_seed_with_int(MANGLED, extra, SEEDS[0]) #eb0,
+                        fnv64_seed_with_int(MANGLED, extra, SEEDS[1]) #eb1,
+                        fnv64_seed_with_int(MANGLED, extra, SEEDS[2]) #eb2,
+                        fnv64_seed_with_int(MANGLED, extra, SEEDS[3]) #eb3,
                     ]
                 }
             }
