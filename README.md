@@ -197,7 +197,7 @@ Use the `#[pred(extends(..))]` attribute to inherit predicates.
 ```rust
 #[derive(Preds)]
 #[pred(extends(Odd, Greater<1>))]
-struct IsFive;
+struct Five;
 ```
 
 ### Order distinction in const generics
