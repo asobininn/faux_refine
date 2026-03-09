@@ -8,7 +8,7 @@ cargo add faux-refine -F "derive"
 
 ``` toml
 [dependencies]
-faux-refine = { version = "0.1" features = ["derive"] }
+faux-refine = { version = "0.2" features = ["derive"] }
 ```
 
 ## Usage
