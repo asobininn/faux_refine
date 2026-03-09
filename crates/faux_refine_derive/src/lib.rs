@@ -133,8 +133,11 @@ pub fn derive_validator_pred(input: TokenStream) -> TokenStream {
             }
         }
     };
+    
 
     quote! {
+        impl #impl_generics __private::Sealed for #name #ty_generics #where_clause {}
+
         impl #impl_generics Pred for #name #ty_generics #where_clause {
             const PRED_BIT: BitSet = #bit_expr;
         }

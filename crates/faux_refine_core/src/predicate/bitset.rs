@@ -1,5 +1,10 @@
 use crate::predicate::list::{Cons, Nil};
 
+#[doc(hidden)]
+pub mod __private {
+    pub trait Sealed {}
+}
+
 /// Number of bitsets(256bit).
 const BITS_NUM: usize = 4;
 
@@ -32,9 +37,13 @@ impl BitSet {
     }
 }
 
-pub trait Pred {
+#[allow(private_bounds)]
+pub trait Pred: __private::Sealed {
     const PRED_BIT: BitSet;
 }
+
+impl __private::Sealed for Nil {}
+impl<V: Pred, Rest: Pred> __private::Sealed for Cons<V, Rest> {}
 
 impl Pred for Nil {
     const PRED_BIT: BitSet = BitSet { bits: [0, 0, 0, 0] };

@@ -164,6 +164,7 @@
 //! ```
 
 pub use faux_refine_core;
+pub use faux_refine_core::predicate::bitset::__private;
 #[cfg(feature = "derive")]
 pub use faux_refine_derive;
 
