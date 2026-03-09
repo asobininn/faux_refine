@@ -81,8 +81,8 @@ pub fn derive_validator_pred(input: TokenStream) -> TokenStream {
         result
     };
     // extendsがある場合、親制約のPRED_BITをORで合算するトークンを生成する
-    // e.g. extends(IsNat, GreaterEq<1>) →
-    //      | <IsNat as Pred>::PRED_BIT.bits[0] | <GreaterEq<1> as Pred>::PRED_BIT.bits[0]
+    // e.g. extends(Nat, GreaterEq<1>) →
+    //      | <Nat as Pred>::PRED_BIT.bits[0] | <GreaterEq<1> as Pred>::PRED_BIT.bits[0]
     let extends_bits: Vec<TokenStream2> = (0..4)
         .map(|i| {
             let idx = syn::Index::from(i);
