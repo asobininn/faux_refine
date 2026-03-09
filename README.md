@@ -171,17 +171,17 @@ fn main() -> Result<(), MyError> {
 ### O(1) Strong → Weak conversion
 
 ```rust
-let n: ValidatedInt<preds!(IsOdd, Greater<3>)> = ValidatedInt::try_new(11)?;
+let n: ValidatedInt<preds!(Odd, Greater<3>)> = ValidatedInt::try_new(11)?;
 // Only a bitset comparison
-let n: ValidatedInt<preds!(IsOdd)> = n.into_weaken().unwrap();
+let n: ValidatedInt<preds!(Odd)> = n.into_weaken().unwrap();
 ```
 
 ### Weak → Strong conversion without redundant checks
 
 ```rust
-let n: ValidatedInt<preds!(IsOdd)> = ValidatedInt::try_new(11)?;
-// Only checks IsGreater<3>
-let n: ValidatedInt<preds!(IsOdd, Greater<3>)> = n.try_into_refine().map_err(|e| e.error)?;
+let n: ValidatedInt<preds!(Odd)> = ValidatedInt::try_new(11)?;
+// Only checks Greater<3>
+let n: ValidatedInt<preds!(Odd, Greater<3>)> = n.try_into_refine().map_err(|e| e.error)?;
 ```
 
 ### Composing multiple predicates
@@ -196,7 +196,7 @@ Use the `#[pred(extends(..))]` attribute to inherit predicates.
 
 ```rust
 #[derive(Preds)]
-#[pred(extends(IsOdd, Greater<1>))]
+#[pred(extends(Odd, Greater<1>))]
 struct IsFive;
 ```
 
@@ -218,9 +218,9 @@ Support via a `Contains` trait is planned once `generic_const_exprs`
 is stabilized.
 
 ```rust
-let n = ValidatedInt::<preds!(IsNat, IsOdd)>::try_new(11)?;
-let rn: &ValidatedInt<preds!(IsOdd, IsNat)> = &n.as_weaken_ref().unwrap();
-let n: ValidatedInt<preds!(IsOdd, IsNat)> = n.try_into_refine().unwrap();
+let n = ValidatedInt::<preds!(Nat, Odd)>::try_new(11)?;
+let rn: &ValidatedInt<preds!(Odd, Nat)> = &n.as_weaken_ref().unwrap();
+let n: ValidatedInt<preds!(Odd, Nat)> = n.try_into_refine().unwrap();
 ```
 
 ### Semantic operations and predicate relationships
@@ -234,12 +234,12 @@ Mathematically, adding two odd numbers results in an even number.
 However, the library does not know this fact, so an `unwrap` is required.
 
 ```rust
-// Adding two numbers that are IsOdd and IsPositive should produce IsEven,
+// Adding two numbers that are Odd and Positive should produce Even,
 // but the library cannot derive it automatically.
 fn add_odd_positives(
-    a: ValidatedInt<preds!(IsOdd, IsPositive)>,
-    b: ValidatedInt<preds!(IsOdd, IsPositive)>,
-) -> ValidatedInt<preds!(IsEven)> {
+    a: ValidatedInt<preds!(Odd, Positive)>,
+    b: ValidatedInt<preds!(Odd, Positive)>,
+) -> ValidatedInt<preds!(Even)> {
     // Obvious to humans, but unavoidable here
     ValidatedInt::try_new(a.into_inner() + b.into_inner()).unwrap() 
 }

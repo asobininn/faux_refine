@@ -10,9 +10,9 @@ use crate::predicate::{
 /// ## Examples
 /// ```
 /// #[derive(Pred, Debug, Clone)]
-/// struct IsOdd;
+/// struct Odd;
 ///
-/// impl<T: num::Integer> Validator<T> for IsOdd {
+/// impl<T: num::Integer> Validator<T> for Odd {
 ///     type Error = MyError;
 ///
 ///     fn validate(value: &T) -> Result<(), Self::Error> {

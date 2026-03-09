@@ -10,14 +10,14 @@ pub struct Cons<H, T>(PhantomData<(H, T)>);
 /// ## Example Layout
 /// ```
 /// preds!()                   // Nil
-/// preds!(IsOdd)              // Cons<IsOdd, Nil>
-/// preds!(IsOdd, Grearter<3>) // Cons<IsOdd, Cons<Greater<3>, Nil>>
+/// preds!(Odd)              // Cons<Odd, Nil>
+/// preds!(Odd, Grearter<3>) // Cons<Odd, Cons<Greater<3>, Nil>>
 /// ```
 /// ## Examples
 /// ```
-/// type OddAndGt3 = ValidedNumber<i32, preds!(Isodd, Greater<3>)>;
+/// type OddAndGt3 = ValidedNumber<i32, preds!(Odd, Greater<3>)>;
 /// 
-/// fn odd_only(n: &ValidatedNumber<i32, preds!(IsOdd)>) {/* */}
+/// fn odd_only(n: &ValidatedNumber<i32, preds!(Odd)>) {/* */}
 /// ```
 #[macro_export]
 macro_rules! preds {

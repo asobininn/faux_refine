@@ -36,8 +36,8 @@ impl<P: Pred> Display for ValidatedInt<P> {
 
 #[derive(Debug)]
 enum MyError {
-    IsNotOdd,
-    IsNotFive,
+    IsEven,
+    NotFive,
     Below(i32),
     Convert,
     NotASubset,
@@ -53,12 +53,12 @@ impl From<Infallible> for MyError {
 // required: Manual definition of inclusion relationships
 
 #[derive(Pred, Debug, Clone)]
-struct IsOdd;
-impl<T: num::Integer> Validator<T> for IsOdd {
+struct Odd;
+impl<T: num::Integer> Validator<T> for Odd {
     type Error = MyError;
 
     fn validate(value: &T) -> Result<(), Self::Error> {
-        value.is_odd().then_some(()).ok_or(MyError::IsNotOdd)
+        value.is_odd().then_some(()).ok_or(MyError::IsEven)
     }
 }
 
@@ -75,29 +75,29 @@ impl<const N: i32, T: num::Integer + num::ToPrimitive> Validator<T> for Greater<
 }
 
 #[derive(Pred, Debug, Clone)]
-#[pred(extends(IsOdd, Greater<1>))]
-struct IsFive;
-impl Validator<i32> for IsFive {
+#[pred(extends(Odd, Greater<1>))]
+struct Five;
+impl Validator<i32> for Five {
     type Error = MyError;
 
     fn validate(value: &i32) -> Result<(), Self::Error> {
-        (value == &5).then_some(()).ok_or(MyError::IsNotFive)
+        (value == &5).then_some(()).ok_or(MyError::NotFive)
     }
 }
 
 // 4. Use
 //
 
-fn odd_and_greater1_only(n: &ValidatedInt<preds!(IsOdd, Greater<1>)>) {
+fn odd_and_greater1_only(n: &ValidatedInt<preds!(Odd, Greater<1>)>) {
     println!("{} is an odd number and greater than 1.", n);
 }
 
-fn five_only(n: &ValidatedInt<preds!(IsFive)>) {
+fn five_only(n: &ValidatedInt<preds!(Five)>) {
     println!("{} is 5!!.", n)
 }
 
 fn main() -> Result<(), MyError> {
-    let n: ValidatedInt<preds!(IsFive)> = ValidatedInt::try_new(5)?;
+    let n: ValidatedInt<preds!(Five)> = ValidatedInt::try_new(5)?;
     odd_and_greater1_only(n.as_weaken_ref().ok_or(MyError::NotASubset)?);
     five_only(&n);
     Ok(())

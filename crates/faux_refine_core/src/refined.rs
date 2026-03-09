@@ -45,10 +45,10 @@ pub unsafe trait Refined: Sized {
     /// Returns the error from the first failing constraint during the validation of `Self::Proof`
     /// ## Examples
     /// ```rust
-    /// let n = ValidatedInt::<preds!(IsOdd, Greater<3>)>::try_new(11);
+    /// let n = ValidatedInt::<preds!(Odd, Greater<3>)>::try_new(11);
     /// assert!(n.is_ok());
     ///
-    /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(4);
+    /// let n = ValidatedInt::<preds!(Odd)>::try_new(4);
     /// assert!(n.is_err());
     /// ```
     fn try_new(value: Self::Inner) -> Result<Self, <Self::Pred as Validator<Self::Inner>>::Error>
@@ -75,11 +75,11 @@ pub unsafe trait Refined: Sized {
     /// 256-bit bitwise comparison **O(1)**.
     /// ## Examples
     /// ```rust
-    /// let n = ValidatedInt::<preds!(IsOdd, Greater<3>)>::try_new(11)?;
-    /// let rn = n.as_weaken_ref::<ValidatedInt<preds!(IsOdd)>>();
+    /// let n = ValidatedInt::<preds!(Odd, Greater<3>)>::try_new(11)?;
+    /// let rn = n.as_weaken_ref::<ValidatedInt<preds!(Odd)>>();
     /// assert!(rn.is_some());
     ///
-    /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(5)?;
+    /// let n = ValidatedInt::<preds!(Odd)>::try_new(5)?;
     /// let rn = n.as_weaken_ref::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(rn.is_none());
     /// ```
@@ -97,11 +97,11 @@ pub unsafe trait Refined: Sized {
     /// 256-bit bitwise comparison **O(1)**.
     /// ## Examples
     /// ```rust
-    /// let n = ValidatedInt::<preds!(IsOdd, Greater<3>)>::try_new(11)?;
-    /// let new_n = n.into_weaken::<ValidatedInt<preds!(IsOdd)>>();
+    /// let n = ValidatedInt::<preds!(Odd, Greater<3>)>::try_new(11)?;
+    /// let new_n = n.into_weaken::<ValidatedInt<preds!(Odd)>>();
     /// assert!(new_n.is_ok());
     ///
-    /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(5)?;
+    /// let n = ValidatedInt::<preds!(Odd)>::try_new(5)?;
     /// let new_n = n.into_weaken::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(new_n.is_err());
     /// ```
@@ -129,11 +129,11 @@ pub unsafe trait Refined: Sized {
     /// - `Err(Error)` — Returns the error from the first failing constraint during the validation of `Self::Proof`.
     /// ## Examples
     /// ```rust
-    /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(5)?;
+    /// let n = ValidatedInt::<preds!(Odd)>::try_new(5)?;
     /// let rn = n.try_as_refine_ref::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(rn.is_ok());
     ///
-    /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(1)?;
+    /// let n = ValidatedInt::<preds!(Odd)>::try_new(1)?;
     /// let rn = n.try_as_refine_ref::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(rn.is_err());
     /// ```
@@ -158,11 +158,11 @@ pub unsafe trait Refined: Sized {
     /// - `Err(RefineError(Self, Error))` — (Original value, Returns the error from the first failing constraint during the validation of `Self::Proof`)
     /// ## Examples
     /// ```rust
-    /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(5)?;
+    /// let n = ValidatedInt::<preds!(Odd)>::try_new(5)?;
     /// let new_n = n.try_into_refine::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(new_n.is_ok());
     ///
-    /// let n = ValidatedInt::<preds!(IsOdd)>::try_new(1)?;
+    /// let n = ValidatedInt::<preds!(Odd)>::try_new(1)?;
     /// let new_n = n.try_into_refine::<ValidatedInt<preds!(IsFive)>>();
     /// assert!(new_n.is_err());
     /// ```
